@@ -127,10 +127,10 @@ if sys.version_info >= (3,):
 
 setuptools.setup(
     name = package_name,
-    version = '0.0.3.dev',
+    version = '0.0.3.gsmafra.0',
     packages = packages,
     scripts = scripts,
-    url = 'http://hyperopt.github.com/hyperopt/',
+    url = 'https://github.com/gsmafra/hyperopt',
     author = 'James Bergstra',
     author_email = 'james.bergstra@gmail.com',
     description = 'Distributed Asynchronous Hyperparameter Optimization',

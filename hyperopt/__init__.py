@@ -18,6 +18,7 @@ from .base import trials_from_docs
 from .base import Domain
 
 from .fmin import fmin
+from .fmin import fmin_path
 from .fmin import fmin_pass_expr_memo_ctrl
 from .fmin import FMinIter
 from .fmin import partial
@@ -35,5 +36,4 @@ import tpe
 import mix
 import anneal
 
-__version__ = '0.0.3.dev'
-
+__version__ = '0.0.3.gsmafra.0'
