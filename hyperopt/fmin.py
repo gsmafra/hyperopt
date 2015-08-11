@@ -342,6 +342,8 @@ def space_eval(space, hp_assignment):
     return rval
 
 ### Fork
+import tpe
+
 
 def dump_trials(trials, path):
 
@@ -350,6 +352,7 @@ def dump_trials(trials, path):
 	file = open(path, 'wb')
 	cPickle.dump(trials, file)
 	file.close()
+
 
 def fmin_path(objective, space, max_evals, path):
 
@@ -366,7 +369,7 @@ def fmin_path(objective, space, max_evals, path):
 
 	try:
 		print('Size of object: ' + str(len(trials)))
-		best = fmin(objective, space=space, algo=base.tpe.suggest, max_evals=len(trials) + max_evals, trials=trials)
+		best = fmin(objective, space=space, algo=tpe.suggest, max_evals=len(trials) + max_evals, trials=trials)
 	except KeyboardInterrupt:
 		dump_trials(trials, path)
 		raise
