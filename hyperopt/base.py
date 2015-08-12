@@ -53,8 +53,6 @@ logger = logging.getLogger(__name__)
 #    and plotting functions.
 
 STATUS_NEW = 'new'
-STATUS_RUNNING = 'running'
-STATUS_SUSPENDED = 'suspended'
 STATUS_OK = 'ok'
 STATUS_FAIL = 'fail'
 STATUS_STRINGS = (
@@ -256,16 +254,6 @@ class Trials(object):
         if refresh:
             self.refresh()
 
-    def view(self, exp_key=None, refresh=True):
-        rval = object.__new__(self.__class__)
-        rval._exp_key = exp_key
-        rval._ids = self._ids
-        rval._dynamic_trials = self._dynamic_trials
-        rval.attachments = self.attachments
-        if refresh:
-            rval.refresh()
-        return rval
-
     def aname(self, trial, name):
         return 'ATTACH::%s::%s' % (trial['tid'], name)
 
@@ -394,17 +382,6 @@ class Trials(object):
         self._dynamic_trials.extend(docs)
         return rval
 
-    def insert_trial_doc(self, doc):
-        """insert trial after error checking
-
-        Does not refresh. Call self.refresh() for the trial to appear in
-        self.specs, self.results, etc.
-        """
-        doc = self.assert_valid_trial(SONify(doc))
-        return self._insert_trial_docs([doc])[0]
-        # refreshing could be done fast in this base implementation, but with
-        # a real DB the steps should be separated.
-
     def insert_trial_docs(self, docs):
         """ trials - something like is returned by self.new_trial_docs()
         """
@@ -435,36 +412,6 @@ class Trials(object):
             doc['refresh_time'] = None
             rval.append(doc)
         return rval
-
-    def source_trial_docs(self, tids, specs, results, miscs, sources):
-        assert _all_same(map(len, [tids, specs, results, miscs, sources]))
-        rval = []
-        for tid, spec, result, misc, source in zip(tids, specs, results, miscs,
-                                                   sources):
-            doc = dict(
-                version=0,
-                tid=tid,
-                spec=spec,
-                result=result,
-                misc=misc,
-                state=source['state'],
-                exp_key=source['exp_key'],
-                owner=source['owner'],
-                book_time=source['book_time'],
-                refresh_time=source['refresh_time'],
-                )
-            # -- ensure that misc has the following fields,
-            #    some of which may already by set correctly.
-            assign = ('tid', tid), ('cmd', None), ('from_tid', source['tid'])
-            for k, v in assign:
-                assert doc['misc'].setdefault(k, v) == v
-            rval.append(doc)
-        return rval
-
-    def delete_all(self):
-        self._dynamic_trials = []
-        self.attachments = {}
-        self.refresh()
 
     def count_by_state_synced(self, arg, trials=None):
         """
@@ -501,12 +448,6 @@ class Trials(object):
             return [r.get('loss') for r in self.results]
         else:
             return map(bandit.loss, self.results, self.specs)
-
-    def statuses(self, bandit=None):
-        if bandit is None:
-            return [r.get('status') for r in self.results]
-        else:
-            return map(bandit.status, self.results, self.specs)
 
     def average_best_error(self, bandit=None):
         """Return the average best error of the experiment
@@ -584,18 +525,6 @@ class Trials(object):
         return rval
 
 
-def trials_from_docs(docs, validate=True, **kwargs):
-    """Construct a Trials base class instance from a list of trials documents
-    """
-    rval = Trials(**kwargs)
-    if validate:
-        rval.insert_trial_docs(docs)
-    else:
-        rval._insert_trial_docs(docs)
-    rval.refresh()
-    return rval
-
-
 class Ctrl(object):
     """Control object for interruptible, checkpoint-able evaluation
     """
@@ -629,42 +558,11 @@ class Ctrl(object):
         """
         return self.trials.trial_attachments(trial=self.current_trial)
 
-    def inject_results(self, specs, results, miscs, new_tids=None):
-        """Inject new results into self.trials
-
-        Returns ??? XXX
-
-        new_tids can be None, in which case new tids will be generated
-        automatically
-
-        """
-        trial = self.current_trial
-        assert trial is not None
-        num_news = len(specs)
-        assert len(specs) == len(results) == len(miscs)
-        if new_tids is None:
-            new_tids = self.trials.new_trial_ids(num_news)
-        new_trials = self.trials.source_trial_docs(tids=new_tids,
-                                                   specs=specs,
-                                                   results=results,
-                                                   miscs=miscs,
-                                                   sources=[trial])
-        for t in new_trials:
-            t['state'] = JOB_STATE_DONE
-        return self.trials.insert_trial_docs(new_trials)
-
-
 class Domain(object):
     """Picklable representation of search space and evaluation function.
 
     """
     rec_eval_print_node_on_error = False
-
-    # -- the Ctrl object is not used directly, but rather
-    #    a live Ctrl instance is inserted for the pyll_ctrl
-    #    in self.evaluate so that it can be accessed from within
-    #    the pyll graph describing the search space.
-    pyll_ctrl = pyll.as_apply(Ctrl)
 
     def __init__(self, fn, expr,
                  workdir=None,

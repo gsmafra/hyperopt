@@ -21,10 +21,6 @@ np_versions = map(int, np.__version__.split('.')[:2])
 DEFAULT_MAX_PROGRAM_LEN = 100000
 
 
-class PyllImportError(ImportError):
-    """A pyll symbol was not defined in the scope """
-
-
 class MissingArgument(object):
     """Object to represent a missing argument to a function application
     """
@@ -143,14 +139,6 @@ class SymbolTable(object):
             raise ValueError('Cannot redefine existing symbol', name)
         return self._define(f, o_len, pure)
 
-    def undefine(self, f):
-        if isinstance(f, basestring):
-            name = f
-        else:
-            name = f.__name__
-        del self._impls[name]
-        delattr(self, name)
-
     def define_pure(self, f):
         return self.define(f, o_len=None, pure=True)
 
@@ -158,28 +146,6 @@ class SymbolTable(object):
         def wrapper(f):
             return self.define(f, o_len=o_len, pure=pure)
         return wrapper
-
-    def inject(self, *args, **kwargs):
-        """
-        Add symbols from self into a dictionary and return the dict.
-
-        This is used for import-like syntax: see `import_`.
-        """
-        rval = {}
-        for k in args:
-            try:
-                rval[k] = getattr(self, k)
-            except AttributeError:
-                raise PyllImportError(k)
-        for k, origk in kwargs.items():
-            try:
-                rval[k] = getattr(self, origk)
-            except AttributeError:
-                raise PyllImportError(origk)
-        return rval
-
-    def import_(self, _globals, *args, **kwargs):
-        _globals.update(self.inject(*args, **kwargs))
 
 class SymbolTableEntry(object):
     """A functools.partial-like class for adding symbol table entries.
@@ -319,7 +285,6 @@ class Apply(object):
 
         fn = scope._impls[self.name]
         # XXX does not work for builtin functions
-        defaults = fn.__defaults__  # right-aligned default values for params
         code = fn.__code__
 
         extra_args_ok = bool(code.co_flags & 0x04)
@@ -395,18 +360,6 @@ class Apply(object):
 
         return binding
 
-    def set_kwarg(self, name, value):
-        for ii, (key, val) in enumerate(self.named_args):
-            if key == name:
-                self.named_args[ii][1] = as_apply(value)
-                return
-        arg = self.arg
-        if name in arg and arg[name] != MissingArgument:
-            raise NotImplementedError('change pos arg to kw arg')
-        else:
-            self.named_args.append([name, as_apply(value)])
-            self.named_args.sort()
-
     def clone_from_inputs(self, inputs, o_len='same'):
         if len(inputs) != len(self.inputs()):
             raise TypeError()
@@ -418,18 +371,6 @@ class Apply(object):
         if o_len == 'same':
             o_len = self.o_len
         return self.__class__(self.name, pos_args, named_args, o_len)
-
-    def replace_input(self, old_node, new_node):
-        rval = []
-        for ii, aa in enumerate(self.pos_args):
-            if aa is old_node:
-                self.pos_args[ii] = new_node
-                rval.append(ii)
-        for ii, (nn, aa) in enumerate(self.named_args):
-            if aa is old_node:
-                self.named_args[ii][1] = new_node
-                rval.append(ii + len(self.pos_args))
-        return rval
 
     def pprint(self, ofile, lineno=None, indent=0, memo=None):
         if memo is None:
@@ -623,10 +564,6 @@ class UndefinedValue(object):
 
 # -- set up some convenience symbols to use as parameters in Lambda definitions
 p0 = Literal(UndefinedValue)
-p1 = Literal(UndefinedValue)
-p2 = Literal(UndefinedValue)
-p3 = Literal(UndefinedValue)
-p4 = Literal(UndefinedValue)
 
 
 @scope.define
@@ -728,43 +665,6 @@ def clone(expr, memo=None):
             new_inputs = [memo[arg] for arg in node.inputs()]
             new_node = node.clone_from_inputs(new_inputs)
             memo[node] = new_node
-    return memo[expr]
-
-
-def clone_merge(expr, memo=None, merge_literals=False):
-    nodes = dfs(expr)
-    if memo is None:
-        memo = {}
-    # -- args are somewhat slow to construct, so cache them out front
-    #    XXX node.arg does not always work (builtins, weird co_flags)
-    node_args = [(node.pos_args, node.named_args) for node in nodes]
-    del node
-    for ii, node_ii in enumerate(nodes):
-        if node_ii in memo:
-            continue
-        new_ii = None
-        if node_ii.pure:
-            for jj in range(ii):
-                node_jj = nodes[jj]
-                if node_ii.name != node_jj.name:
-                    continue
-                if node_ii.name == 'literal':
-                    if not merge_literals:
-                        continue
-                    if node_ii._obj != node_jj._obj:
-                        continue
-                else:
-                    if node_args[ii] != node_args[jj]:
-                        continue
-                logger.debug('clone_merge %s %i <- %i' % (
-                    node_ii.name, jj, ii))
-                new_ii = node_jj
-                break
-        if new_ii is None:
-            new_inputs = [memo[arg] for arg in node_ii.inputs()]
-            new_ii = node_ii.clone_from_inputs(new_inputs)
-        memo[node_ii] = new_ii
-
     return memo[expr]
 
 

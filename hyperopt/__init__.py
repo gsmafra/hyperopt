@@ -1,8 +1,6 @@
 
 from .base import STATUS_STRINGS
 from .base import STATUS_NEW
-from .base import STATUS_RUNNING
-from .base import STATUS_SUSPENDED
 from .base import STATUS_OK
 from .base import STATUS_FAIL
 
@@ -14,7 +12,6 @@ from .base import JOB_STATE_ERROR
 
 from .base import Ctrl
 from .base import Trials
-from .base import trials_from_docs
 from .base import Domain
 
 from .fmin import fmin
