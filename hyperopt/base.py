@@ -32,12 +32,7 @@ import sys
 
 import numpy as np
 
-try:
-    import bson  # -- comes with pymongo
-    from bson.objectid import ObjectId
-    have_bson = True
-except ImportError:
-    have_bson = False
+have_bson = False
 
 import pyll
 #from pyll import scope  # looks unused but
