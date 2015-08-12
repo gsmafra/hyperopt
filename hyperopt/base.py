@@ -99,10 +99,6 @@ TRIAL_MISC_KEYS = [
     'vals']
 
 
-def _all_same(*args):
-    return 1 == len(set(args))
-
-
 def SONify(arg, memo=None):
     if not have_bson:
         return arg
@@ -568,7 +564,6 @@ class Domain(object):
                  workdir=None,
                  pass_expr_memo_ctrl=None,
                  name=None,
-                 loss_target=None,
                  ):
         """
         Paramaters
@@ -597,13 +592,6 @@ class Domain(object):
         name : string (or None)
             Label, used for pretty-printing.
 
-        loss_target : float (or None)
-            The actual or estimated minimum of `fn`.
-            Some optimization algorithms may behave differently if their first
-            objective is to find an input that achieves a certain value,
-            rather than the more open-ended objective of pure minimization.
-            XXX: Move this from Domain to be an fmin arg.
-
         """
         self.fn = fn
         if pass_expr_memo_ctrl is None:
@@ -623,7 +611,6 @@ class Domain(object):
                     raise DuplicateLabel(label)
                 self.params[label] = node.arg['obj']
 
-        self.loss_target = loss_target
         self.name = name
 
         self.workdir = workdir
@@ -708,9 +695,6 @@ class Domain(object):
 
         return dict_rval
 
-    def short_str(self):
-        return 'Domain{%s}' % str(self.fn)
-
     def loss(self, result, config=None):
         """Extract the scalar-valued loss from a result document
         """
@@ -727,12 +711,6 @@ class Domain(object):
             return result['true_loss']
         except KeyError:
             return self.loss(result, config=config)
-
-    def true_loss_variance(self, config=None):
-        """Return the variance in  true loss,
-        in the case that the `loss` is a surrogate.
-        """
-        raise NotImplementedError()
 
     def status(self, result, config=None):
         """Extract the job status from a result document
