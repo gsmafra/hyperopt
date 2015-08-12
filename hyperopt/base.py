@@ -595,43 +595,6 @@ class Trials(object):
                 rval[k] = v[0]
         return rval
 
-    def fmin(self, fn, space, algo, max_evals,
-             rstate=None,
-             verbose=0,
-             pass_expr_memo_ctrl=None,
-             catch_eval_exceptions=False,
-             return_argmin=True,
-             ):
-        """Minimize a function over a hyperparameter space.
-
-        For most parameters, see `hyperopt.fmin.fmin`.
-
-        Parameters
-        ----------
-
-        catch_eval_exceptions : bool, default False
-            If set to True, exceptions raised by either the evaluation of the
-            configuration space from hyperparameters or the execution of `fn`
-            , will be caught by fmin, and recorded in self._dynamic_trials as
-            error jobs (JOB_STATE_ERROR).  If set to False, such exceptions
-            will not be caught, and so they will propagate to calling code.
-
-
-        """
-        # -- Stop-gap implementation!
-        #    fmin should have been a Trials method in the first place
-        #    but for now it's still sitting in another file.
-        import fmin as fmin_module
-        return fmin_module.fmin(
-            fn, space, algo, max_evals,
-            trials=self,
-            rstate=rstate,
-            verbose=verbose,
-            allow_trials_fmin=False,  # -- prevent recursion
-            pass_expr_memo_ctrl=pass_expr_memo_ctrl,
-            catch_eval_exceptions=catch_eval_exceptions,
-            return_argmin=return_argmin)
-
 
 def trials_from_docs(docs, validate=True, **kwargs):
     """Construct a Trials base class instance from a list of trials documents
