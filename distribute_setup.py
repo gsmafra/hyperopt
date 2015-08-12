@@ -308,12 +308,6 @@ def _remove_flat_installation(placeholder):
 _remove_flat_installation = _no_sandbox(_remove_flat_installation)
 
 
-def _after_install(dist):
-    log.warn('After install bootstrap.')
-    placeholder = dist.get_command_obj('install').install_purelib
-    _create_fake_setuptools_pkg_info(placeholder)
-
-
 def _create_fake_setuptools_pkg_info(placeholder):
     if not placeholder or not os.path.exists(placeholder):
         log.warn('Could not find the install location')
@@ -369,11 +363,6 @@ def _patch_egg_dir(path):
     return True
 
 _patch_egg_dir = _no_sandbox(_patch_egg_dir)
-
-
-def _before_install():
-    log.warn('Before install bootstrap.')
-    _fake_setuptools()
 
 
 def _under_prefix(location):
@@ -481,7 +470,6 @@ def _extractall(self, path=".", members=None):
             # Extract directories with a safe mode.
             directories.append(tarinfo)
             tarinfo = copy.copy(tarinfo)
-            tarinfo.mode = 448  # decimal for oct 0700
         self.extract(tarinfo, path)
 
     # Reverse sort directories.

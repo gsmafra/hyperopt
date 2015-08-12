@@ -218,11 +218,6 @@ class Trials(object):
     A Trials instance stores that history and makes it available to fmin and
     to the various optimization algorithms.
 
-    This class (`base.Trials`) is a pure-Python implementation of the database
-    in terms of lists of dictionaries.  Subclass `mongoexp.MongoTrials`
-    implements the same API in terms of a mongodb database running in another
-    process. Other subclasses may be implemented in future.
-
     The elements of `self.trials` represent all of the completed, in-progress,
     and scheduled evaluation points from an e.g. `fmin` call.
 
@@ -252,8 +247,6 @@ class Trials(object):
       to either `[]` or `[<tid>]`.
 
     """
-
-    async = False
 
     def __init__(self, exp_key=None, refresh=True):
         self._ids = set()
@@ -815,10 +808,6 @@ class Domain(object):
             for key, val in attachments.items():
                 ctrl.attachments[key] = val
 
-        # -- don't do this here because SON-compatibility is only a requirement
-        #    for trials destined for a mongodb. In-memory rvals can contain
-        #    anything.
-        #return base.SONify(dict_rval)
         return dict_rval
 
     def short_str(self):

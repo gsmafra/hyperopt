@@ -111,17 +111,6 @@ def idxs_take(idxs, vals, which):
     return np.asarray([table[w] for w in which])
 
 
-@scope.define_pure
-def uniq(lst):
-    s = set()
-    rval = []
-    for l in lst:
-        if id(l) not in s:
-            s.add(id(l))
-            rval.append(l)
-    return rval
-
-
 def vectorize_stochastic(orig):
     if orig.name == 'idxs_map' and orig.pos_args[1]._obj in stoch:
         # -- this is an idxs_map of a random draw of distribution `dist`
@@ -159,53 +148,6 @@ def vectorize_stochastic(orig):
         return vnode
     else:
         return orig
-
-
-def replace_repeat_stochastic(expr, return_memo=False):
-    nodes = dfs(expr)
-    memo = {}
-    for ii, orig in enumerate(nodes):
-        if orig.name == 'idxs_map' and orig.pos_args[1]._obj in stoch:
-            # -- this is an idxs_map of a random draw of distribution `dist`
-            idxs = orig.pos_args[0]
-            dist = orig.pos_args[1]._obj
-            def foo(arg):
-                # -- each argument is an idxs, vals pair
-                assert arg.name == 'pos_args'
-                assert len(arg.pos_args) == 2
-                arg_vals = arg.pos_args[1]
-                if (arg_vals.name == 'asarray'
-                        and arg_vals.inputs()[0].name == 'repeat'):
-                    # -- draws are iid, so forget about
-                    #    repeating the distribution parameters
-                    repeated_thing = arg_vals.inputs()[0].inputs()[1]
-                    return repeated_thing
-                else:
-                    if arg.pos_args[0] is idxs:
-                        return arg_vals
-                    else:
-                        # -- arg.pos_args[0] is a superset of idxs
-                        #    TODO: slice out correct elements using
-                        #    idxs_take, but more importantly - test this case.
-                        raise NotImplementedError()
-            new_pos_args = [foo(arg) for arg in orig.pos_args[2:]]
-            new_named_args = [[aname, foo(arg)]
-                    for aname, arg in orig.named_args]
-            vnode = Apply(dist, new_pos_args, new_named_args, None)
-            n_times = scope.len(idxs)
-            if 'size' in dict(vnode.named_args):
-                raise NotImplementedError('random node already has size')
-            vnode.named_args.append(['size', n_times])
-            # -- loop over all nodes that *use* this one, and change them
-            for client in nodes[ii+1:]:
-                client.replace_input(orig, vnode)
-            if expr is orig:
-                expr = vnode
-            memo[orig] = vnode
-    if return_memo:
-        return expr, memo
-    else:
-        return expr
 
 
 class VectorizeHelper(object):

@@ -19,10 +19,7 @@ from .base import Domain
 
 from .fmin import fmin
 from .fmin import fmin_path
-from .fmin import fmin_pass_expr_memo_ctrl
 from .fmin import FMinIter
-from .fmin import partial
-from .fmin import space_eval
 
 # -- syntactic sugar
 import hp

@@ -103,41 +103,6 @@ def pmin_sampled(mean, var, n_samples=1000, rng=None):
     return wincounts.astype('float64') / wincounts.sum()
 
 
-def fast_isin(X,Y):
-    """
-    Indices of elements in a numpy array that appear in another.
-
-    Fast routine for determining indices of elements in numpy array `X` that 
-    appear in numpy array `Y`, returning a boolean array `Z` such that::
-
-            Z[i] = X[i] in Y
-
-    """
-    if len(Y) > 0:
-        T = Y.copy()
-        T.sort()
-        D = T.searchsorted(X)
-        T = np.append(T,np.array([0]))
-        W = (T[D] == X)
-        if isinstance(W,bool):
-            return np.zeros((len(X),),bool)
-        else:
-            return (T[D] == X)
-    else:
-        return np.zeros((len(X),),bool)
-
-
-def get_most_recent_inds(obj):
-    data = numpy.rec.array([(x['_id'], int(x['version']))
-                            for x in obj], 
-                            names=['_id', 'version'])
-    s = data.argsort(order=['_id', 'version'])
-    data = data[s]
-    recent = (data['_id'][1:] != data['_id'][:-1]).nonzero()[0]
-    recent = numpy.append(recent, [len(data)-1])
-    return s[recent]
-
-
 def use_obj_for_literal_in_memo(expr, obj, lit, memo):
     """
     Set `memo[node] = obj` for all nodes in expr such that `node.obj == lit`
@@ -171,64 +136,3 @@ def coarse_utcnow():
                              now.minute, now.second, microsec)
 
 
-from contextlib import contextmanager
-@contextmanager
-def working_dir(dir):
-    cwd = os.getcwd()
-    os.chdir(dir)
-    yield
-    os.chdir(cwd)
-
-def path_split_all(path):
-    """split a path at all path separaters, return list of parts"""
-    parts = []
-    while True:
-        path, fn = os.path.split(path)
-        if len(fn) == 0:
-            break
-        parts.append(fn)
-    return reversed(parts)
-
-def get_closest_dir(workdir):
-    """
-    returns the topmost already-existing directory in the given path
-    erasing work-dirs should never progress above this file.
-    Also returns the name of first non-existing dir for use as filename.
-    """
-    closest_dir = ''
-    for wdi in path_split_all(workdir):
-        if os.path.isdir(os.path.join(closest_dir, wdi)):
-            closest_dir = os.path.join(closest_dir, wdi)
-        else:
-            break
-    assert closest_dir != workdir
-    return closest_dir, wdi
-
-@contextmanager
-def temp_dir(dir, erase_after=False, with_sentinel=True):
-    created_by_me = False
-    if not os.path.exists(dir):
-        if os.pardir in dir:
-            raise RuntimeError("workdir contains os.pardir ('..')")
-        if erase_after and with_sentinel:
-            closest_dir, fn = get_closest_dir(dir)
-            sentinel = os.path.join(closest_dir, fn + ".inuse")
-            open(sentinel, 'w').close()
-        os.makedirs(dir)
-        created_by_me = True
-    else:
-        assert os.path.isdir(dir)
-    yield
-    if erase_after and created_by_me:
-        # erase all files in workdir
-        shutil.rmtree(dir)
-        if with_sentinel:
-            # put dir back as starting point for recursive remove
-            os.mkdir(dir)
-
-            # also try to erase any other empty directories up to
-            # sentinel file
-            os.removedirs(dir)
-
-            # remove sentinel file
-            os.remove(sentinel)
