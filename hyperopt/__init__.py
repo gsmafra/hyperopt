@@ -27,7 +27,5 @@ import exceptions
 # -- Import built-in optimization algorithms
 import rand
 import tpe
-import mix
-import anneal
 
 __version__ = '0.0.3.gsmafra.0'

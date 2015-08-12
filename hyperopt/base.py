@@ -490,10 +490,6 @@ class Trials(object):
                     and loss3[cutoff][0] < loss3[0][0] + 3 * sigma):
                 cutoff += 1
             pmin = pmin_sampled(loss3[:cutoff, 0], loss3[:cutoff, 1])
-            #print pmin
-            #print loss3[:cutoff, 0]
-            #print loss3[:cutoff, 1]
-            #print loss3[:cutoff, 2]
             avg_true_loss = (pmin * loss3[:cutoff, 2]).sum()
             return avg_true_loss
 
