@@ -11,36 +11,10 @@ import time
 
 import numpy as np
 
-import pyll
 from .utils import coarse_utcnow
 from . import base
 
 logger = logging.getLogger(__name__)
-
-
-def fmin_pass_expr_memo_ctrl(f):
-    """
-    Mark a function as expecting kwargs 'expr', 'memo' and 'ctrl' from
-    hyperopt.fmin.
-
-    expr - the pyll expression of the search space
-    memo - a partially-filled memo dictionary such that
-           `rec_eval(expr, memo=memo)` will build the proposed trial point.
-    ctrl - the Experiment control object (see base.Ctrl)
-
-    """
-    f.fmin_pass_expr_memo_ctrl = True
-    return f
-
-
-def partial(fn, **kwargs):
-    """functools.partial work-alike for functions decorated with
-    fmin_pass_expr_memo_ctrl
-    """
-    rval = functools.partial(fn, **kwargs)
-    if hasattr(fn, 'fmin_pass_expr_memo_ctrl'):
-        rval.fmin_pass_expr_memo_ctrl = fn.fmin_pass_expr_memo_ctrl
-    return rval
 
 
 class FMinIter(object):
@@ -91,11 +65,7 @@ class FMinIter(object):
                     break
         self.trials.refresh()
 
-    def block_until_done(self):
-        already_printed = False
-        self.serial_evaluate()
-
-    def run(self, N, block_until_done=True):
+    def run(self, N):
     
         trials = self.trials
         algo = self.algo
@@ -133,28 +103,17 @@ class FMinIter(object):
             if stopped:
                 break
 
-        if block_until_done:
-            self.block_until_done()
-            self.trials.refresh()
-            logger.info('Queue empty, exiting run.')
-        else:
-            qlen = get_queue_len()
-            if qlen:
-                msg = 'Exiting run, not waiting for %d jobs.' % qlen
-                logger.info(msg)
+        qlen = get_queue_len()
+        if qlen:
+            msg = 'Exiting run, not waiting for %d jobs.' % qlen
+            logger.info(msg)
 
     def __iter__(self):
         return self
 
-    def next(self):
-        self.run(1, block_until_done=False)
-        if len(self.trials) >= self.max_evals:
-            raise StopIteration()
-        return self.trials
-
     def exhaust(self):
         n_done = len(self.trials)
-        self.run(self.max_evals - n_done, block_until_done=False)
+        self.run(self.max_evals - n_done)
         self.trials.refresh()
         return self
 
@@ -180,26 +139,6 @@ def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
     rval.catch_eval_exceptions = catch_eval_exceptions
     rval.exhaust()
 
-
-def space_eval(space, hp_assignment):
-    """Compute a point in a search space from a hyperparameter assignment.
-
-    Parameters:
-    -----------
-    space - a pyll graph involving hp nodes (see `pyll_utils`).
-
-    hp_assignment - a dictionary mapping hp node labels to values.
-    """
-    space = pyll.as_apply(space)
-    nodes = pyll.toposort(space)
-    memo = {}
-    for node in nodes:
-        if node.name == 'hyperopt_param':
-            label = node.arg['label'].eval()
-            if label in hp_assignment:
-                memo[node] = hp_assignment[label]
-    rval = pyll.rec_eval(space, memo=memo)
-    return rval
 
 ### Fork
 import tpe
