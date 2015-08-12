@@ -170,7 +170,7 @@ def fmin_path(objective, space, max_evals, path):
         print('Size of object: ' + str(len(trials)))
         fmin(objective, space=space, algo=tpe.suggest, max_evals=len(trials) + max_evals, trials=trials)
         dump_trials(trials, path)
-    except KeyboardInterrupt:
+    except:
         dump_trials(trials, path)
         raise
 
