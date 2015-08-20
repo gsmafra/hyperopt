@@ -1,30 +1,3 @@
-"""Base classes / Design
-
-The design is that there are three components fitting together in this project:
-
-- Trials - a list of documents including at least sub-documents:
-    ['spec'] - the specification of hyper-parameters for a job
-    ['result'] - the result of Domain.evaluate(). Typically includes:
-        ['status'] - one of the STATUS_STRINGS
-        ['loss'] - real-valued scalar that hyperopt is trying to minimize
-    ['idxs'] - compressed representation of spec
-    ['vals'] - compressed representation of spec
-    ['tid'] - trial id (unique in Trials list)
-
-- Domain - specifies a search problem
-
-- Ctrl - a channel for two-way communication
-         between an Experiment and Domain.evaluate.
-         Experiment subclasses may subclass Ctrl to match. For example, if an
-         experiment is going to dispatch jobs in other threads, then an
-         appropriate thread-aware Ctrl subclass should go with it.
-
-"""
-
-__authors__ = "James Bergstra"
-__license__ = "3-clause BSD License"
-__contact__ = "github.com/hyperopt/hyperopt"
-
 import logging
 import datetime
 import os
